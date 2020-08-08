@@ -14,7 +14,7 @@ class Router
         $this->loadRoutes();
     }
 
-    public function loadRoutes(): void
+    private function loadRoutes(): void
     {
         $routes = require $_SERVER['DOCUMENT_ROOT'] . '/Config/Routes.php';
         foreach ($routes as $route => $params) {
@@ -22,13 +22,13 @@ class Router
         }
     }
 
-    public function add(string $route, array $params): void
+    private function add(string $route, array $params): void
     {
         $route = "#^$route$#";
         $this->routes[$route] = $params;
     }
 
-    public function run()
+    public function run(): void
     {
         if ($this->match()) {
             $controller = 'App\Controllers\\' . $this->params['controller'];
@@ -43,7 +43,7 @@ class Router
         }
     }
 
-    public function match(): bool
+    private function match(): bool
     {
         $url = trim($_SERVER['REQUEST_URI'], '/');
         foreach ($this->routes as $route => $params) {
