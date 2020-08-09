@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use Core\Controller;
 use App\Models\Sale;
+use App\Factories\FileStaticFactory;
 
 class SaleController extends Controller
 {
@@ -28,7 +29,9 @@ class SaleController extends Controller
 
     public function store()
     {
-        $data = $this->model->handleCsv();
+        //Иньекция зависимостей которая реализована 
+        //в фреймворках с DI контейнером лучше ))
+        $data = $this->model->store(FileStaticFactory::build('csv'));
         $this->response($data);
     }
 

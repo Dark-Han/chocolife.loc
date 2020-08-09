@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
+use App\Services\CsvFile;
+use App\Contracts\iFile;
 use Core\Model;
 use Exception;
+
 
 class Sale extends Model
 {
     private $table = 'sales';
-    private $insertedData = [];
-    private $changedRow = [];
 
     public function getUrls(): array
     {
@@ -39,64 +40,23 @@ class Sale extends Model
         return $row;
     }
 
-    public function handleCsv(): array
+    public function store(iFile $file): array
     {
-        if ($_FILES['data']['type'] === 'text/csv') {
-            $this->insert($_FILES['data']['tmp_name']);
-            return $this->changedRow;
-        } else {
-            throw new Exception('Не верный формат файла !');
-        }
+        $insertedData = $file->getInsertedData();
+        $this->insert($insertedData);
+        return $file->getChangedRow();
     }
 
-    private function insert(string $path): void
+    private function insert(array $insertedData): void
     {
-        $this->makeInsertedData($path);
         if ($this->createTable()) {
             $sql = "INSERT INTO 
                                 $this->table 
                             (ID,NAME,DATE_ST,DATE_EN,STATUS) 
                                 VALUES 
                             (:ID,:NAME,:DATE_ST,:DATE_EN,:STATUS)";
-            $this->transactQuery($sql, $this->insertedData);
+            $this->transactQuery($sql, $insertedData);
         }
-    }
-
-    private function makeInsertedData(string $path): void
-    {
-        if (($file = fopen($path, "r")) !== FALSE) {
-            while (($data = fgetcsv($file)) !== FALSE) {
-                $arr = explode(';', $data[0]);
-                $this->makeRow($arr);
-            }
-            fclose($file);
-            unset($this->insertedData[0]);
-            $this->changeRandRowStatusToOpposite();
-        }
-    }
-
-    private function makeRow(array $arr): void
-    {
-        $row['ID'] = (int)$arr[0];
-        $row['NAME'] = trim($arr[1], '"');
-        $row['DATE_ST'] = strtotime($arr[2]);
-        $row['DATE_EN'] = strtotime($arr[3]);
-        $row['STATUS'] = trim($arr[4]);
-        $this->insertedData[] = $row;
-    }
-
-    private function changeRandRowStatusToOpposite(): void
-    {
-        $rand = rand(1, count($this->insertedData));
-        $this->changedRow = $this->insertedData[$rand];
-        $this->changedRow['DATE_ST'] = date("m-d-Y", $this->changedRow['DATE_ST']);
-        $this->changedRow['DATE_EN'] = date("m-d-Y", $this->changedRow['DATE_EN']);
-        if ($this->changedRow['STATUS'] === 'On') {
-            $newStatus = 'Off';
-        } else {
-            $newStatus = 'On';
-        }
-        $this->insertedData[$rand]['STATUS'] = $newStatus;
     }
 
     private function createTable(): bool
